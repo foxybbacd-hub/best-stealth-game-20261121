@@ -1,61 +1,71 @@
-// Every tuning number and colour in one place. The playfield is a fixed 1280x720 logical area;
-// the renderer scales it to the window, so no rule below depends on the screen size.
+// Tuning and palette for Lantern Museum, the stealth game in this folder.
+// One place holds every number the other modules share, so balancing the
+// detection model or the level scale means editing here and nowhere else.
 
-export const FIELD = { width: 1280, height: 720, groundY: 664 };
+export const TILE = 40;
+export const COLS = 24;
+export const ROWS = 16;
+export const VIEW_WIDTH = COLS * TILE;
+export const VIEW_HEIGHT = ROWS * TILE;
 
-/** The simulation's fixed step, in seconds: 60 updates a second whatever the display's rate. */
-export const STEP = 1 / 60;
+// Movement, in tiles per second.
+export const PLAYER_WALK_SPEED = 3.4;
+export const PLAYER_SNEAK_SPEED = 1.9;
+export const GUARD_PATROL_SPEED = 2.1;
+export const GUARD_CHASE_SPEED = 3.5;
+export const GUARD_SEARCH_SPEED = 2.6;
 
-export const PLAYER = {
-  width: 72,
-  height: 24,
-  speed: 560,
-  invulnerable: 1.5,
+// Guard senses.
+export const GUARD_SIGHT_RANGE = 6.4 * TILE;
+export const GUARD_HALF_ANGLE = 0.61; // radians, about 35 degrees each side
+export const GUARD_HEAR_RADIUS = 5 * TILE;
+
+// Suspicion, 0 to 100. It climbs while a guard can see the player and falls
+// away while the player stays out of sight.
+export const SUSPICION_MAX = 100;
+export const SUSPICION_DECAY_PER_SECOND = 26;
+export const SUSPICION_SEEN_CLOSE_PER_SECOND = 95;
+export const SUSPICION_SEEN_FAR_PER_SECOND = 20;
+export const SUSPICION_SNEAK_FACTOR = 0.45;
+export const SUSPICION_SHADOW_FACTOR = 0.45;
+export const SUSPICION_ALERT_AT = 100;
+export const SUSPICION_WARY_AT = 55;
+
+// Guard behaviour timers, in seconds.
+export const GUARD_WAYPOINT_PAUSE = 1.4;
+export const GUARD_LOSE_SIGHT_SECONDS = 2.5;
+export const GUARD_SEARCH_SECONDS = 3.2;
+
+// Player kit.
+export const PLAYER_PEBBLES_START = 5;
+export const PEBBLE_FLY_SECONDS = 0.38;
+export const PEBBLE_THROW_COOLDOWN = 0.6;
+export const RELICS_TO_WIN = 3;
+
+// Palette. The floor is a cool blue-grey; shadow tiles are darker so the
+// player can read safety at a glance; cones are warm amber, turning red
+// when a guard is alerted.
+export const COLOURS = {
+  floorLight: '#3a4152',
+  floorDark: '#343b4b',
+  floorShadow: '#232936',
+  wall: '#171b26',
+  wallTop: '#2b3247',
+  shelf: '#4a3626',
+  shelfEdge: '#6b4e33',
+  crate: '#7a5c33',
+  crateEdge: '#a07d44',
+  relic: '#ffd76a',
+  exitLocked: '#c94f4f',
+  exitOpen: '#58d68d',
+  player: '#e8e4d8',
+  playerCloak: '#7d6bb0',
+  guard: '#d97b2f',
+  guardAlert: '#e33e2e',
+  coneCalm: 'rgba(255, 214, 106, 0.20)',
+  coneWary: 'rgba(255, 178, 64, 0.30)',
+  coneAlert: 'rgba(227, 62, 46, 0.34)',
+  hudPanel: 'rgba(12, 14, 22, 0.78)',
+  text: '#f2efe6',
+  textDim: '#aab0c0',
 };
-
-export const LIVES = 3;
-
-export const BLOCK = {
-  minWidth: 40,
-  maxWidth: 110,
-  height: 36,
-  speed: 240,
-  speedPerLevel: 30,
-  speedJitter: 90,
-  interval: 0.55,
-  intervalScale: 0.88,
-  minInterval: 0.14,
-  dodgePoints: 1,
-};
-
-export const COIN = {
-  size: 24,
-  speed: 190,
-  speedPerLevel: 14,
-  interval: 1.4,
-  intervalJitter: 0.8,
-  points: 10,
-};
-
-/** Seconds of play per level, and the last level: speeds and spawn rates stop growing there. */
-export const LEVEL = { seconds: 12, max: 12 };
-
-/** How many falling things can exist at once; the pool is allocated once, at boot. */
-export const POOL_SIZE = 64;
-
-export const PALETTE = {
-  backdrop: '#11141b',
-  sky: '#1b1f2a',
-  ground: '#2a3040',
-  player: '#4fc3f7',
-  block: '#e5534b',
-  coin: '#f2c94c',
-  panel: '#252b38',
-  text: '#eef1f5',
-  muted: '#8b93a3',
-};
-
-export const FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
-
-/** Where the best score is kept between visits (this browser only). */
-export const BEST_KEY = 'block-dodger.best';

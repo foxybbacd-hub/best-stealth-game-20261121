@@ -1,53 +1,77 @@
-// Keyboard and pointer input. Held keys give a steering direction; one-shot presses (start or
-// restart, pause) are queued as bit flags and taken once by the loop, so a press between two
-// frames is never lost and never counted twice.
+// Keyboard and mouse input, translated into the game's own key names.
+// The game reads `keys` as a set ('up', 'down', 'left', 'right', 'sneak')
+// and takes clicks as world coordinates, so the rest of the game never
+// touches a DOM event.
 
-export const ACTION_CONFIRM = 1;
-export const ACTION_PAUSE = 2;
+const KEY_NAMES = {
+  KeyW: 'up',
+  ArrowUp: 'up',
+  KeyS: 'down',
+  ArrowDown: 'down',
+  KeyA: 'left',
+  ArrowLeft: 'left',
+  KeyD: 'right',
+  ArrowRight: 'right',
+  ShiftLeft: 'sneak',
+  ShiftRight: 'sneak',
+};
 
-const LEFT = new Set(['ArrowLeft', 'KeyA']);
-const RIGHT = new Set(['ArrowRight', 'KeyD']);
-const CONFIRM = new Set(['Space', 'Enter']);
-const PAUSE = new Set(['KeyP', 'Escape']);
+export class Input {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.keys = new Set();
+    /** Callbacks the game wires up: { onAction, onClick, onPause, onMute }. */
+    this.handlers = {};
+    this.pressed = new Set();
+  }
 
-export function createInput(target) {
-  let left = false;
-  let right = false;
-  let actions = 0;
+  attach() {
+    window.addEventListener('keydown', (event) => {
+      const name = KEY_NAMES[event.code];
+      if (name) {
+        this.keys.add(name);
+        event.preventDefault();
+      }
+      if (event.repeat) return;
+      this.pressed.add(event.code);
+      if (event.code === 'Enter' || event.code === 'Space') {
+        if (this.handlers.onAction) this.handlers.onAction();
+        event.preventDefault();
+      }
+      if (event.code === 'KeyR' && this.handlers.onAction) {
+        this.handlers.onAction('restart');
+      }
+      if (event.code === 'KeyP' && this.handlers.onPause) this.handlers.onPause();
+      if (event.code === 'KeyM' && this.handlers.onMute) this.handlers.onMute();
+    });
+    window.addEventListener('keyup', (event) => {
+      const name = KEY_NAMES[event.code];
+      if (name) this.keys.delete(name);
+    });
+    window.addEventListener('blur', () => this.keys.clear());
+    this.canvas.addEventListener('pointerdown', (event) => {
+      const rect = this.canvas.getBoundingClientRect();
+      // The canvas keeps its aspect ratio (object-fit: contain), so the
+      // drawn game may be letterboxed inside the element: map the click
+      // into the drawn area, not the element box.
+      const scale = Math.min(rect.width / this.canvas.width, rect.height / this.canvas.height);
+      const drawnWidth = this.canvas.width * scale;
+      const drawnHeight = this.canvas.height * scale;
+      const offsetX = (rect.width - drawnWidth) / 2;
+      const offsetY = (rect.height - drawnHeight) / 2;
+      const x = ((event.clientX - rect.left - offsetX) / drawnWidth) * this.canvas.width;
+      const y = ((event.clientY - rect.top - offsetY) / drawnHeight) * this.canvas.height;
+      if (this.handlers.onClick) this.handlers.onClick(x, y);
+    });
+    this.canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+  }
 
-  window.addEventListener('keydown', (event) => {
-    if (LEFT.has(event.code)) left = true;
-    else if (RIGHT.has(event.code)) right = true;
-    else if (CONFIRM.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_CONFIRM;
-    } else if (PAUSE.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_PAUSE;
-    } else return;
-    event.preventDefault();
-  });
-  window.addEventListener('keyup', (event) => {
-    if (LEFT.has(event.code)) left = false;
-    else if (RIGHT.has(event.code)) right = false;
-  });
-  // A key released while the tab is hidden never sends keyup: let go of everything on blur.
-  window.addEventListener('blur', () => {
-    left = false;
-    right = false;
-  });
-  target.addEventListener('pointerdown', () => {
-    actions |= ACTION_CONFIRM;
-  });
+  /** True once for a key pressed since the last frame; used for menus. */
+  wasPressed(code) {
+    return this.pressed.has(code);
+  }
 
-  return {
-    /** -1 for left, 1 for right, 0 for neither or both. */
-    direction() {
-      return (right ? 1 : 0) - (left ? 1 : 0);
-    },
-    /** The one-shot presses since the last call, as ACTION_* flags. */
-    takeActions() {
-      const taken = actions;
-      actions = 0;
-      return taken;
-    },
-  };
+  endFrame() {
+    this.pressed.clear();
+  }
 }
